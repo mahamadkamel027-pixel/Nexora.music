@@ -1,0 +1,521 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXORA MUSIC</title>
+<style>
+:root {
+  --bg:#09090d;
+  --panel:#15151d;
+  --red:#f02045;
+  --text:#fff;
+  --muted:#9999a8;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font-family:Arial,sans-serif;
+}
+header{
+  height:72px;padding:0 6%;display:flex;
+  align-items:center;justify-content:space-between;
+  background:#101016;border-bottom:1px solid #29232d;
+  position:sticky;top:0;z-index:5;
+}
+.logo{font-size:23px;font-weight:900}
+.logo span{color:var(--red)}
+.container{max-width:1050px;margin:auto;padding:25px 18px 100px}
+.hero{
+  padding:30px;border-radius:20px;
+  background:linear-gradient(120deg,#40101e,#17131d,#11111a);
+  border:1px solid #522033;margin-bottom:25px;
+}
+.hero h1{font-size:35px;margin:0 0 10px}
+.hero p{color:#c2b7c0;line-height:1.6}
+.searchbox{
+  display:flex;gap:9px;margin:25px 0 12px;
+}
+input,select{
+  background:#1b1b24;color:white;
+  border:1px solid #383843;border-radius:10px;
+  padding:14px;outline:none;min-width:0;
+}
+input:focus,select:focus{border-color:var(--red)}
+#query{flex:1;width:100%}
+button,.upload{
+  border:0;border-radius:10px;padding:13px 18px;
+  background:var(--red);color:white;
+  font-weight:bold;cursor:pointer;
+}
+button:disabled{opacity:.5;cursor:not-allowed}
+.secondary{background:#292933}
+.section{margin-top:30px}
+.section h2{font-size:20px}
+.muted{color:var(--muted);font-size:13px}
+.results{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  gap:15px;
+}
+.card{
+  background:var(--panel);border:1px solid #2b2b35;
+  border-radius:15px;padding:12px;overflow:hidden;
+}
+.thumb{
+  width:100%;aspect-ratio:16/9;object-fit:cover;
+  background:#25202b;border-radius:9px;
+}
+.card h3{font-size:15px;line-height:1.4}
+.card button{width:100%;margin-top:7px}
+.player{
+  background:#15151d;border:1px solid #333;
+  border-radius:15px;padding:15px;margin-top:20px;
+}
+iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:10px}
+.file-row{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;background:#191920;border:1px solid #30303a;
+  border-radius:12px;padding:12px;margin:10px 0;
+}
+.file-row .name{overflow-wrap:anywhere}
+#message{color:#ff7189;min-height:20px;font-size:13px}
+#apiPanel{
+  background:#17171f;border:1px solid #34303b;
+  padding:15px;border-radius:13px;margin-top:15px;
+}
+#apiPanel input{width:100%;margin:10px 0}
+#formatPanel{
+  display:none;background:#191920;border:1px solid #48303b;
+  border-radius:15px;padding:18px;margin-top:20px;
+}
+#formatPanel select{width:100%;margin:8px 0 15px}
+.tag{
+  display:inline-block;background:#35131f;color:#ff8ba0;
+  padding:5px 9px;border-radius:7px;font-size:12px;
+}
+.empty{
+  text-align:center;padding:35px;
+  color:var(--muted);border:1px dashed #383843;
+  border-radius:12px;grid-column:1/-1;
+}
+footer{text-align:center;padding:25px;color:#777}
+@media(max-width:550px){
+ header{padding:0 15px}
+ .container{padding:17px 12px 80px}
+ .hero{padding:22px 17px}
+ .hero h1{font-size:28px}
+ .searchbox{flex-direction:column}
+ .searchbox button{width:100%}
+ .file-row{align-items:flex-start;flex-direction:column}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">NEXORA <span>MUSIC</span></div>
+  <span class="tag">V2.0</span>
+</header>
+
+<main class="container">
+<section class="hero">
+  <span class="tag">MUSIC DISCOVERY</span>
+  <h1>Find Your Music.</h1>
+  <p>Search videos, discover music and enjoy your personal media library.</p>
+  <div class="searchbox">
+    <input id="query" placeholder="Search songs, artists or videos...">
+    <button id="searchBtn" onclick="searchVideos()">⌕ Search</button>
+  </div>
+  <div id="message">Enter a search term to discover videos.</div>
+</section>
+<section id="apiPanel">
+  <b> YouTube Search Setup </b>
+  <p class="muted">
+    Enter your YouTube Data API v3 key to enable video search.
+    Restrict the key to your website domain.
+  </p>
+  <input id="apiKey" type="password" placeholder="YouTube API Key">
+  <button onclick="saveKey()">Save API Key</button>
+  <button class="secondary" onclick="clearKey()">Clear</button>
+</section>
+<section class="section">
+  <h2>Search Results</h2>
+  <div class="results" id="results">
+    <div class="empty">Your search results will appear here.</div>
+  </div>
+</section>
+
+<section class="section">
+  <h2>Video Player</h2>
+  <div class="player" id="player">
+    <p class="muted">Select a search result to play it here.</p>
+  </div>
+</section>
+
+<section class="section">
+  <h2>My Downloads & Files</h2>
+  <p class="muted">Upload your own music and videos.</p>
+  <label class="upload" for="uploadFiles">
+    + Upload MP3 / MP4
+  </label>
+  <input id="uploadFiles" type="file"
+    accept="audio/*,video/*" multiple hidden>
+
+  <div id="library" style="margin-top:20px">
+    <div class="empty">No files uploaded yet.</div>
+  </div>
+</section>
+
+<section id="formatPanel">
+  <h3>Download Settings</h3>
+  <p id="selectedName" class="muted"></p>
+  <label>File Format</label>
+  <select id="format">
+    <option value="original">Original file format</option>
+    <option value="mp3">MP3 (requires licensed conversion)</option>
+    <option value="mp4">MP4 (requires licensed conversion)</option>
+  </select>
+  <label>Video Quality</label>
+  <select id="quality">
+    <option value="original">Original quality</option>
+    <option value="360p">360p</option>
+    <option value="480p">480p</option>
+    <option value="720p">720p HD</option>
+    <option value="1080p">1080p Full HD</option>
+  </select>
+  <p class="muted">
+    Format conversion and resolution changes require an authorized
+    media-processing server. This browser version downloads the
+    original uploaded file without changing its format or quality.
+  </p>
+  <button id="downloadBtn" onclick="downloadSelected()">
+    ↓ Download Original
+  </button>
+  <button class="secondary" onclick="closeFormat()">Cancel</button>
+</section>
+
+</main>
+
+<footer>NEXORA MUSIC © 2026</footer>
+<script>
+const API_URL =
+  "https://www.googleapis.com/youtube/v3/search";
+
+let selectedFile = null;
+let files = [];
+let db;
+
+function message(text){
+  document.getElementById("message").textContent=text;
+}
+
+function saveKey(){
+  const key=document.getElementById("apiKey").value.trim();
+  if(!key){
+    message("Please enter an API key.");
+    return;
+  }
+  sessionStorage.setItem("nexora_api_key",key);
+  message("API key saved for this browser session.");
+}
+function clearKey(){
+  sessionStorage.removeItem("nexora_api_key");
+  document.getElementById("apiKey").value="";
+  message("API key cleared.");
+}
+
+async function searchVideos(){
+  const q=document.getElementById("query").value.trim();
+  const key=sessionStorage.getItem("nexora_api_key");
+  const results=document.getElementById("results");
+  if(!q){
+    message("Enter a search term.");
+    return;
+  }
+  if(!key){
+    message("Add your YouTube API key first.");
+    return;
+  }
+  const btn=document.getElementById("searchBtn");
+  btn.disabled=true;
+  btn.textContent="Searching...";
+  message("Searching YouTube...");
+
+  try{
+    const params=new URLSearchParams({
+      part:"snippet",
+      q:q,
+      type:"video",
+      maxResults:"15",
+      key:key
+    });
+
+    const response=await fetch(API_URL+"?"+params);
+    const data=await response.json();
+
+    if(!response.ok){
+      throw new Error(data.error?.message || "Search failed");
+    }
+
+    results.innerHTML="";
+    if(!data.items || !data.items.length){
+      results.innerHTML='<div class="empty">No results found.</div>';
+      message("No videos found.");
+      return;
+    }
+
+    data.items.forEach(item=>{
+      const id=item.id.videoId;
+      const title=item.snippet.title;
+      const channel=item.snippet.channelTitle;
+      const image=item.snippet.thumbnails.medium?.url ||
+                  item.snippet.thumbnails.default.url;
+
+      const card=document.createElement("article");
+      card.className="card";
+      const img=document.createElement("img");
+      img.className="thumb";
+      img.src=image;
+      img.alt=title;
+
+      const heading=document.createElement("h3");
+      heading.textContent=title;
+
+      const author=document.createElement("p");
+      author.className="muted";
+      author.textContent=channel;
+
+      const play=document.createElement("button");
+      play.textContent="▶ Play Video";
+      play.onclick=()=>playVideo(id,title);
+      const link=document.createElement("button");
+      link.className="secondary";
+      link.textContent="↗ Open YouTube";
+      link.onclick=()=>{
+        window.open(
+          "https://www.youtube.com/watch?v="+encodeURIComponent(id),
+          "_blank","noopener"
+        );
+      };
+
+      card.append(img,heading,author,play,link);
+      results.appendChild(card);
+    });
+    message(data.items.length+" videos found.");
+  }catch(error){
+    console.error(error);
+    message("Error: "+error.message);
+  }finally{
+    btn.disabled=false;
+    btn.textContent="⌕ Search";
+  }
+}
+
+function playVideo(id,title){
+  const player=document.getElementById("player");
+  player.innerHTML="";
+
+  const heading=document.createElement("h3");
+  heading.textContent=title;
+  const frame=document.createElement("iframe");
+  frame.src="https://www.youtube-nocookie.com/embed/"+
+    encodeURIComponent(id);
+  frame.title=title;
+  frame.allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+  frame.allowFullscreen=true;
+
+  player.append(heading,frame);
+  player.scrollIntoView({behavior:"smooth",block:"center"});
+}
+
+document.getElementById("query").addEventListener(
+  "keydown",e=>{
+    if(e.key==="Enter")searchVideos();
+  }
+);
+
+// Local media database
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open("NexoraV2",1);
+
+    req.onupgradeneeded=()=>{
+      req.result.createObjectStore("files",{
+        keyPath:"id",autoIncrement:true
+      });
+    };
+
+    req.onsuccess=()=>{
+      db=req.result;
+      resolve();
+    };
+
+    req.onerror=()=>reject(req.error);
+  });
+}
+function getFiles(){
+  return new Promise((resolve,reject)=>{
+    const req=db.transaction("files")
+      .objectStore("files").getAll();
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+function addFile(file){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction("files","readwrite");
+    tx.objectStore("files").add({
+      name:file.name,
+      type:file.type,
+      size:file.size,
+      blob:file
+    });
+    tx.oncomplete=resolve;
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+function removeFile(id){
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction("files","readwrite");
+    tx.objectStore("files").delete(id);
+    tx.oncomplete=resolve;
+    tx.onerror=()=>reject(tx.error);
+  });
+}
+
+function sizeText(n){
+  return n>1048576
+    ?(n/1048576).toFixed(2)+" MB"
+    :(n/1024).toFixed(1)+" KB";
+}
+
+function safeText(text){
+  return String(text).replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",
+    '"':"&quot;","'":"&#39;"
+  })[c]);
+}
+async function renderLibrary(){
+  files=await getFiles();
+  const library=document.getElementById("library");
+  library.innerHTML="";
+
+  if(!files.length){
+    library.innerHTML='<div class="empty">No files uploaded yet.</div>';
+    return;
+  }
+
+  files.forEach(file=>{
+    const row=document.createElement("div");
+    row.className="file-row";
+    const info=document.createElement("div");
+    info.className="name";
+    info.innerHTML="<b>"+safeText(file.name)+"</b><br>"+
+      '<small class="muted">'+sizeText(file.size)+'</small>';
+
+    const actions=document.createElement("div");
+    actions.style.display="flex";
+    actions.style.gap="7px";
+
+    const choose=document.createElement("button");
+    choose.textContent="Download Settings";
+    choose.onclick=()=>openFormat(file);
+    const remove=document.createElement("button");
+    remove.className="secondary";
+    remove.textContent="Delete";
+    remove.onclick=async()=>{
+      if(confirm("Delete this file?")){
+        await removeFile(file.id);
+        await renderLibrary();
+      }
+    };
+
+    actions.append(choose,remove);
+    row.append(info,actions);
+    library.appendChild(row);
+  });
+}
+
+function openFormat(file){
+  selectedFile=file;
+  document.getElementById("selectedName").textContent=
+    "Selected: "+file.name;
+  const format=document.getElementById("format");
+  const quality=document.getElementById("quality");
+
+  format.value="original";
+  quality.value="original";
+
+  document.getElementById("formatPanel").style.display="block";
+  document.getElementById("formatPanel")
+    .scrollIntoView({behavior:"smooth"});
+}
+
+function closeFormat(){
+  selectedFile=null;
+  document.getElementById("formatPanel").style.display="none";
+}
+
+function downloadSelected(){
+  if(!selectedFile)return;
+  const format=document.getElementById("format").value;
+  const quality=document.getElementById("quality").value;
+
+  if(format!=="original" || quality!=="original"){
+    alert(
+      "This version supports downloading the original uploaded file. "+
+      "Converting formats or changing resolution requires a licensed "+
+      "processing server."
+    );
+    return;
+  }
+  const url=URL.createObjectURL(selectedFile.blob);
+  const a=document.createElement("a");
+  a.href=url;
+  a.download=selectedFile.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+  closeFormat();
+}
+
+document.getElementById("uploadFiles").addEventListener(
+  "change",async e=>{
+    let count=0;
+
+    for(const file of e.target.files){
+      if(!file.type.startsWith("audio/") &&
+         !file.type.startsWith("video/"))continue;
+      try{
+        await addFile(file);
+        count++;
+      }catch(error){
+        console.error(error);
+        alert("Storage full or unable to save file.");
+        break;
+      }
+    }
+
+    e.target.value="";
+    await renderLibrary();
+    if(count)message(count+" file(s) added to your library.");
+  }
+);
+
+(async()=>{
+  const key=sessionStorage.getItem("nexora_api_key");
+  if(key)document.getElementById("apiKey").value=key;
+  try{
+    await openDB();
+    await renderLibrary();
+  }catch(error){
+    console.error(error);
+    message("Your browser does not support IndexedDB.");
+  }
+})();
+</script>
+</body>
+</html>
